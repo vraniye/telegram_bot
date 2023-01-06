@@ -1,6 +1,9 @@
 import token_file
 import telebot
+import glob
+import random
 from telebot import types
+from PIL import Image
 
 from db import BotDB
 
@@ -59,13 +62,24 @@ def func(message):
         send = bot.send_message(
             message.chat.id, text="Напиши свой юморной анекдот")
         bot.register_next_step_handler(send, add_db)
+
+    elif (message.text == "Получить смешнявку"):
+        file_path_type = ["./source/memes/*.jpg"]  # , "./source/memes/*.png"
+        images = glob.glob(random.choice(file_path_type))
+        random_image = random.choice(images)
+        img = Image.open(random_image)
+        bot.send_photo(message.chat.id, img)
+
+    elif (message.text == "Добавить смешнявку"):
+        bot.send_message(message.chat.id, text="Я пока такое не умею :(")
+
     else:
         bot.send_message(
             message.chat.id, text="Я тебя не понимаю 😓")
 
 
 def add_db(message):
-    if (message.text == "Травануть анекдотик" or message.text == "Добавить анекдотик"):
+    if (message.text == "Получить смешнявку" or message.text == "Добавить смешнявку" or message.text == "Анекдоты" or message.text == "Мемы" or message.text == "Травануть анекдотик" or message.text == "Добавить анекдотик" or "⬅️Назад"):
         bot.send_message(
             message.chat.id, text="Такие анекдотики мы уже знаем :(")
     else:
