@@ -4,6 +4,7 @@ import glob
 import random
 from telebot import types
 from PIL import Image
+import os as os
 
 from db import BotDB
 
@@ -71,7 +72,9 @@ def func(message):
         bot.send_photo(message.chat.id, img)
 
     elif (message.text == "Добавить смешнявку"):
-        bot.send_message(message.chat.id, text="Я пока такое не умею :(")
+        send = bot.send_message(
+            message.chat.id, text="Отправь свою юморную картинку")
+        bot.register_next_step_handler(send, add_photo)
 
     else:
         bot.send_message(
@@ -85,6 +88,26 @@ def add_db(message):
     else:
         BotDB.add_record(message.from_user.id, message.text)
         bot.reply_to(message, "Анекдот добавлен!")
+
+
+def add_photo(message):
+    try:
+        file_info = bot.get_file(message.photo[-1].file_id)
+        file_name, file_extention = os.path.splitext(file_info.file_path)
+        downloaded_file_photo = bot.download_file(file_info.file_path)
+        src = "./source/memes/" + message.chat.first_name + \
+            "___" + message.photo[-1].file_id + file_extention
+        with open(src, 'wb') as new_file:
+            new_file.write(downloaded_file_photo)
+        bot.send_message(
+            message.chat.id, text="Ваш прикольчик добавлен !")
+
+        sti = open('./source/bot_stuff/sb_sticker.webp', 'rb')
+        bot.send_sticker(message.chat.id, sticker=sti)
+
+    except Exception:
+        bot.send_message(
+            message.chat.id, text="Что-то пошло не так, попробуйте отправить фото заново!")
 
 
 bot.polling(none_stop=True)
