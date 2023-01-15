@@ -15,6 +15,9 @@ bot = telebot.TeleBot(token_file.TOKEN)
 name_of_buttons = ["Получить смешнявку", "Добавить смешнявку", "Анекдоты",
                    "Мемы", "Травануть анекдотик", "Добавить анекдотик", "⬅️Назад"]
 
+not_admin_user_text = "Вы не являетесь администратором или модератором данного бота, напишите {}".format(
+    token_file.ADMIN_TEG)
+
 
 @bot.message_handler(commands=['start', 'menu'])
 def handle_start(message):
@@ -28,6 +31,15 @@ def handle_start(message):
 
     bot.send_message(message.chat.id, text="Привет, {0.first_name}!".format(
         message.from_user), reply_markup=markup)
+
+
+@bot.message_handler(commands=['add_user_to_moderation'])
+def handle_moderation(message):
+    if (message.from_user.id == token_file.ADMIN_ID):
+        send = bot.send_message(message.chat.id, text="user_id =")
+        bot.register_next_step_handler(send, add_moderation)
+    else:
+        bot.send_message(message.chat.id, text=not_admin_user_text)
 
 
 @bot.message_handler(content_types=['text'])
@@ -92,8 +104,23 @@ def func(message):
             message.chat.id, text="Я тебя не понимаю 😓")
 
 
+def add_moderation(message):
+    BotDB.add_user_to_moderation_list(message.text)
+    bot.send_message(token_file.ADMIN_ID,
+                     text="USER_ID {} теперь является модератором!".format(message.text))
+
+
 def add_db(message):
-    if (message.text in name_of_buttons):
+    markup = types.InlineKeyboardMarkup(row_width=1)
+    btn_to_moderation = types.InlineKeyboardButton(
+        'Cтать модератором', callback_data='request_to_moderation')
+    markup.add(btn_to_moderation)
+
+    if (not BotDB.user_exist_in_moderation_list(message.from_user.id)):
+        bot.send_message(
+            message.chat.id, text=not_admin_user_text, reply_markup=markup)
+
+    elif (message.text in name_of_buttons):
         bot.send_message(
             message.chat.id, text="Такие анекдотики мы уже знаем :(")
     else:
@@ -102,6 +129,15 @@ def add_db(message):
 
 
 def add_photo(message):
+    if (not BotDB.user_exist_in_moderation_list(message.from_user.id)):
+        markup = types.InlineKeyboardMarkup(row_width=1)
+        btn_to_moderation = types.InlineKeyboardButton(
+            'Cтать модератором', callback_data='request_to_moderation')
+        markup.add(btn_to_moderation)
+        bot.send_message(
+            message.chat.id, text=not_admin_user_text, reply_markup=markup)
+        return
+
     try:
         file_info = bot.get_file(message.photo[-1].file_id)
         file_name, file_extention = os.path.splitext(file_info.file_path)
@@ -148,6 +184,9 @@ def callback(call):
             send = bot.send_message(
                 call.message.chat.id, text="Перешлите сообщение с другом, которому вы хотите отправить прикол.\nМы не читаем эти сообщения!🤧")
             bot.register_next_step_handler(send, share_to_friend)
+        elif call.data == 'request_to_moderation':
+            bot.send_message(token_file.ADMIN_ID, text="Пользователь {}, USER_ID = {} хочет стать модератором".format(
+                call.from_user.first_name, call.from_user.id))
 
 
 bot.polling(none_stop=True)

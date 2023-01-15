@@ -32,6 +32,18 @@ class BotDB:
             "INSERT INTO `records` (`user_id`, `joke`) VALUES (?, ?)", (self.get_user_id(user_id), joke))
         return self.conn.commit()
 
+    def add_user_to_moderation_list(self, user_id):
+        """Добавляем пользователя в базу данных модераторов бота"""
+        self.cursor.execute(
+            "INSERT INTO `moderator_users` (`user_id`) VALUES (?)", (user_id,))
+        return self.conn.commit()
+
+    def user_exist_in_moderation_list(self, user_id):
+        """Проверяем, есть ли пользователь в базе данных модераторов"""
+        result = self.cursor.execute(
+            "SELECT `id` FROM `moderator_users` WHERE `user_id` = ?", (user_id,))
+        return bool(len(result.fetchall()))
+
     def get_record(self):
         """Получение анекдота из БД"""
         result = self.cursor.execute(
